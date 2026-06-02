@@ -97,12 +97,14 @@ npm run build:data-provider
 测试环境与生产环境按端口、环境变量文件和数据目录分开：
 
 - 测试环境变量示例：`src/libre-chat/.env.test.example`
+- 本地测试环境变量：`src/libre-chat/.env.test`，不提交
 - 测试数据服务 Compose：`src/libre-chat/docker-compose.test.yml`
 - 测试数据目录：`src/libre-chat/data-test/`，不提交
 - 测试后端端口：`3081`
+- 测试前端端口：`3090`
 - 测试 MongoDB：`127.0.0.1:27018`，数据库名 `LibreChatTest`
 - 测试 Meilisearch：`127.0.0.1:17700`
-- 测试 Redis：`127.0.0.1:16380`
+- 测试 Redis：`127.0.0.1:16380`，测试环境默认 `USE_REDIS=true`
 - 测试 RAG API：`127.0.0.1:18000`
 - 测试 PostgreSQL/pgvector：`127.0.0.1:15433`
 
@@ -113,20 +115,63 @@ cd src/libre-chat
 cp .env.test.example .env.test
 ```
 
-启动测试数据服务：
+测试环境中，前后端分开调试时 `.env.test` 使用：
 
-```bash
-docker compose -f docker-compose.test.yml --env-file .env.test up -d
+```env
+DOMAIN_CLIENT=http://localhost:3090
+DOMAIN_SERVER=http://localhost:3081
 ```
 
-使用测试环境变量启动后端：
+启动测试数据服务。基础登录和对话至少需要 MongoDB 和 Redis；搜索、文件检索或 RAG 再启动 Meilisearch、vectordb、rag_api：
+
+```bash
+docker compose -f docker-compose.test.yml --env-file .env.test up -d mongodb redis
+```
+
+首次安装依赖或依赖缺失时，使用 npm 镜像和代理更稳定：
+
+```bash
+npm_config_proxy=http://127.0.0.1:7897 npm_config_https_proxy=http://127.0.0.1:7897 npm_config_registry=https://registry.npmmirror.com npm ci
+```
+
+首次运行或清理过 `dist/` 后，先构建共享包和前端产物：
+
+```bash
+npm run build:data-schemas
+npm run build:data-provider
+npm run build:api
+npm run build:client-package
+npm run build:client
+```
+
+使用测试环境变量启动后端。LibreChat 后端即使在 `backend:dev` 下也会读取 `client/dist/index.html`，所以缺少 `client/dist` 时要先运行 `npm run build:client`：
 
 ```bash
 cp .env.test .env
-npm run backend
+npm run backend:dev
 ```
 
-测试环境暂不作为生产部署方式。生产环境继续使用独立的 `.env`、默认 `docker-compose.yml` 或正式部署配置，禁止复用测试数据目录。
+启动前端开发服务：
+
+```bash
+npm run frontend:dev
+```
+
+浏览器访问：
+
+```text
+http://localhost:3090
+```
+
+如果前端报 `Failed to resolve import "@librechat/client"`，先运行：
+
+```bash
+npm run build:client-package
+```
+
+然后重启 `npm run frontend:dev`。
+
+当前测试环境已验证：MongoDB、Redis、后端 `3081`、前端 `3090` 可启动，并已完成登录和对话测试。测试环境暂不作为生产部署方式。生产环境继续使用独立的 `.env`、默认 `docker-compose.yml` 或正式部署配置，禁止复用测试数据目录。
 
 ## 登录和认证
 
