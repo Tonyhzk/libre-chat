@@ -1,0 +1,74 @@
+# Test environment for local development.
+# Run infrastructure with:
+#   docker compose -f docker-compose.test.yml --env-file .env.test up -d
+
+name: libre-chat-test
+
+services:
+  mongodb:
+    container_name: libre-chat-test-mongodb
+    image: mongo:8.0.20
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:27018:27017'
+    volumes:
+      - ./data-test/mongodb:/data/db
+    command: mongod --noauth
+
+  meilisearch:
+    container_name: libre-chat-test-meilisearch
+    image: getmeili/meilisearch:v1.35.1
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:17700:7700'
+    environment:
+      - MEILI_NO_ANALYTICS=true
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
+    volumes:
+      - ./data-test/meili:/meili_data
+
+  redis:
+    container_name: libre-chat-test-redis
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:16380:6379'
+    command: redis-server --save 60 10 --appendonly yes
+    volumes:
+      - ./data-test/redis:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  vectordb:
+    container_name: libre-chat-test-vectordb
+    image: pgvector/pgvector:0.8.0-pg15-trixie
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:15433:5432'
+    environment:
+      POSTGRES_DB: librechat_rag_test
+      POSTGRES_USER: librechat
+      POSTGRES_PASSWORD: librechat_test_password
+    volumes:
+      - ./data-test/pgvector:/var/lib/postgresql/data
+
+  rag_api:
+    container_name: libre-chat-test-rag-api
+    image: registry.librechat.ai/danny-avila/librechat-rag-api-dev-lite:latest
+    restart: unless-stopped
+    depends_on:
+      - vectordb
+    ports:
+      - '127.0.0.1:18000:8000'
+    environment:
+      - DB_HOST=vectordb
+      - DB_PORT=5432
+      - POSTGRES_DB=librechat_rag_test
+      - POSTGRES_USER=librechat
+      - POSTGRES_PASSWORD=librechat_test_password
+      - RAG_PORT=8000
+    env_file:
+      - .env.test

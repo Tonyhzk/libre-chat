@@ -92,6 +92,42 @@ npm run build:data-provider
 - Redis 是可选项，启用时配置 `USE_REDIS=true` 和 `REDIS_URI`。
 - 本地全量调试可优先用 Docker Compose 跑 MongoDB、Meilisearch、PostgreSQL/pgvector、RAG API，再用源码命令跑前后端，避免每次重新构建应用镜像。
 
+## 测试环境
+
+测试环境与生产环境按端口、环境变量文件和数据目录分开：
+
+- 测试环境变量示例：`src/libre-chat/.env.test.example`
+- 测试数据服务 Compose：`src/libre-chat/docker-compose.test.yml`
+- 测试数据目录：`src/libre-chat/data-test/`，不提交
+- 测试后端端口：`3081`
+- 测试 MongoDB：`127.0.0.1:27018`，数据库名 `LibreChatTest`
+- 测试 Meilisearch：`127.0.0.1:17700`
+- 测试 Redis：`127.0.0.1:16380`
+- 测试 RAG API：`127.0.0.1:18000`
+- 测试 PostgreSQL/pgvector：`127.0.0.1:15433`
+
+首次准备测试环境：
+
+```bash
+cd src/libre-chat
+cp .env.test.example .env.test
+```
+
+启动测试数据服务：
+
+```bash
+docker compose -f docker-compose.test.yml --env-file .env.test up -d
+```
+
+使用测试环境变量启动后端：
+
+```bash
+cp .env.test .env
+npm run backend
+```
+
+测试环境暂不作为生产部署方式。生产环境继续使用独立的 `.env`、默认 `docker-compose.yml` 或正式部署配置，禁止复用测试数据目录。
+
 ## 登录和认证
 
 - 默认支持邮箱密码登录和注册，配置项为 `ALLOW_EMAIL_LOGIN`、`ALLOW_REGISTRATION`、`ALLOW_UNVERIFIED_EMAIL_LOGIN`。
