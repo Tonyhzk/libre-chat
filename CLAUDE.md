@@ -184,11 +184,10 @@ npm run build:client-package
 
 # Git 服务器
 
-- 平台：Gitea（https://git.libre.cn）
-- 用户名：TonyHZK
-- API 格式：Gitea v1（`https://git.libre.cn/api/v1/...`）
-- 认证方式：`Authorization: token <token>`
-- Token：存放在 `local.env`，不提交到 Git
+- 平台：GitHub（https://github.com/Tonyhzk）
+- 仓库：`Tonyhzk/libre-chat`
+- 认证方式：GitHub CLI / HTTPS
+- 默认分支：main
 
 # 工作习惯
 
